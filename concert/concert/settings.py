@@ -25,7 +25,7 @@ SECRET_KEY = 'dggzud@olu!dub82*xs21c8#!#k_o+0j_if3!ljo6#_r0hld*o'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['schlafdata.pythonanywhere.com']
 
 
 # Application definition
@@ -120,7 +120,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 
-STATIC_ROOT = "C:/Users/schla/Desktop/concertFinderDjango/concert/home/static"
+# STATIC_ROOT = "/home/schlafdata/concertFinderDjango/concert/home/static/"
 
 
 STATIC_URL = '/static/'

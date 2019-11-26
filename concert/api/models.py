@@ -2,11 +2,11 @@ from django.db import models
 
 # Create your models here.
 class Matches(models.Model):
-    Event = models.CharField(max_length=255)
-    Date = models.DateTimeField(auto_now=True)
-    Venue = models.CharField(max_length=255)
-    LikedArtists = models.CharField(max_length=255)
-
+    event = models.CharField(max_length=255, default = '')
+    date = models.DateTimeField(auto_now=False)
+    venue = models.CharField(max_length=255,default = '')
+    likedArtists = models.CharField(max_length=255,default = '')
+    picLink = models.CharField(max_length=255,default = '')
 
     def __str__(self):
         return self.title

@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 tagger = pycrfsuite.Tagger()
-tagger.open(r'C:\Users\schla\Desktop\concertFinderDjango\concert\home\scripts\crf.model')
+tagger.open(r'/home/schlafdata/concertFinderDjango/concert/home/scripts/crf.model')
 
 
 proxies = {
@@ -297,6 +297,7 @@ def mishScrape():
         date = event['PerformanceStart']
         id_ = event['upcomingInfo']['EventID']
         link = 'https://mishawaka.ticketforce.com/eventperformances.asp?evt={0}'.format(id_)
+        pic = 'https://mishawaka.ticketforce.com/uplimage/' + event['Img_1']
 
         descSoup = BeautifulSoup(desc, 'html.parser')
         try:
@@ -307,12 +308,15 @@ def mishScrape():
             except:
                 info = headline
 
-        res = (info, date,link, 'Mishawaka Amphitheatre')
+        res = (info, date,link, 'Mishawaka Amphitheatre', pic)
         mishData.append(res)
 
     mishFrame = pd.DataFrame(mishData)
-    mishFrame.columns = ['Artist','Date','Link','Venue']
+    mishFrame.columns = ['Artist','Date','Link','Venue','picLink']
     mishFrame['Date'] = mishFrame['Date'].map(lambda x : x.split('T')[0])
+    mishFrame['Date'] = pd.to_datetime(mishFrame['Date'])
+    mishFrame['Date'] = mishFrame.Date + pd.Timedelta(days=-1)
+    mishFrame['Date'] = mishFrame['Date'].map(lambda x : str(x))
 
     def splitArtists(row):
         return [x.strip() for x in re.split('w/|with|,|special guests', row) if x != ' ']
@@ -450,7 +454,7 @@ def ogden_scrape():
 
 
     def splitArtists(row):
-        return [x.strip() for x in re.split('Presents', row) if (x is not None) & (x != '')]
+        return [x.strip() for x in re.split('Presents|:', row) if (x is not None) & (x != '')]
 
     ogden_events['FiltArtist'] = ogden_events['Artist'].map(splitArtists)
 

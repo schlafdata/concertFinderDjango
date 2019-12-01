@@ -22,7 +22,7 @@ def runScript(username):
 
     result = concertfinderScript.findMatches(username)
     matches = result[0]
-    likes = result[1]
+    # likes = result[1]
     # counts = result[1]
         # pd.set_option('max_colwidth', -1)
         # count = counts.to_html(classes=["table-striped", "table-hover",], index=False, justify="center", escape=False)

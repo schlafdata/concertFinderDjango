@@ -8,7 +8,7 @@ from dateutil.parser import parse
 from bs4 import BeautifulSoup
 import json
 import itertools
-# from urllib.parse import urljoin
+from urllib.parse import urljoin
 import warnings
 warnings.filterwarnings("ignore")
 import nltk
@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 
 tagger = pycrfsuite.Tagger()
-tagger.open(r'/home/schlafdata/concertFinderDjango/concert/home/scripts/crf.model')
+tagger.open(r'/Users/jschlafly/concert_finder/concertFinderDjango/concert/home/scripts/crf.model')
 
 
 proxies = {
@@ -251,7 +251,7 @@ def mapFilters(user):
 
 def temple_scrape():
 
-    temple_events = requests.get('https://www.templedenver.com/event-calendar/all/', proxies = proxies, verify=False)
+    temple_events = requests.get('https://www.templedenver.com/event-calendar/', proxies = proxies, verify=False)
     temple_soup = BeautifulSoup(temple_events.text, "html.parser")
     event_table = temple_soup.findAll('div', {'class':'uv-calendar-list uv-integration uv-eventlist uv-eventlist-default uv-clearfix'})
 
@@ -388,28 +388,28 @@ def black_box_scrape():
 
     black_box = requests.get('https://blackboxdenver.ticketfly.com/', proxies = proxies, verify=False)
     black_soup = BeautifulSoup(black_box.text, 'html.parser')
-    black_event = black_soup.findAll('div', {'class':'list-view-details vevent'})
+    black_event = black_soup.select('article[class*="list-view-item"]')
 
     black_box_events = []
     links = []
     for x in black_event:
-        headliner = x.findAll('a')[0].contents[0]
+        headliners = ', '.join([x.text for x in x.select('h1[class*=headliners]')])
         try:
-            support = x.findAll('h2', {'class', 'supports description'})[0].text
-            artists = headliner + ',' + support
-            eventData = (artists, (x.findAll('h2',{'class':'dates'}))[0].contents[0], 'Black Box')
+            support = x.find('h2', {'class':'supports'}).text
+            artists = headliners + ' ' + support
+            event_data = (artists, x.find('span', {'class':'dates'}).text, 'Black Box')
+            black_box_events.append(event_data)
         except:
-            artists = headliner
-            eventData = (artists, (x.findAll('h2',{'class':'dates'}))[0].contents[0], 'Black Box')
+            artists = headliners
+            event_data = (artists, x.find('span', {'class':'dates'}).text, 'Black Box')
+            black_box_events.append(event_data)
+
         try:
             link = 'https://www.ticketfly.com/purchase' + x.find('a', href=True)['href']
             links.append(link)
         except:
-            link = 'tickets at the door'
-            links.append(links)
-
-        black_box_events.append(eventData)
-
+            link = 'Tickets at the door'
+            links.append(link)
 
     black_box_events = pd.DataFrame(black_box_events)
     black_box_events.columns = ['Artist','Date','Venue']
@@ -795,24 +795,25 @@ def church_scrape():
 def summitScrape():
 
     today = datetime.today().strftime('%Y-%m-%d')
-    response = requests.get('http://www.summitdenver.com/api/EventCalendar/GetEvents?startDate={}&endDate=2019-12-31&venueIds=5289&limit=200&offset=1&genre=&artist=&offerType=&useTMOnly=false'.format(today), proxies = proxies, verify=False)
+    response = requests.get('http://www.summitdenver.com/api/EventCalendar/GetEvents?startDate={}&endDate=2020-11-01&venueIds=37697043,38999257&limit=200&offset=1&genre=&artist=&offerType=STANDARD&useTMOnly=false&useEventBrite=false'.format(today), proxies = proxies, verify=False)
 
     summitResponse = response.json()
     summitJson = json.loads(summitResponse)
 
     summitInfo = []
-    for x in summitJson['tfResult']['events']:
-        artists = x['headlinersName'] + ',' + x['supportsName']
-        dates = x['startDate'].split(' ')[0]
-        venue = x['venue']['name']
-        link = x['ticketPurchaseUrl']
-        info = (artists, dates,link, venue)
+    for x in summitJson['result']:
+        artists = x['title']
+        dates = x['eventDate'].split(' ')[0]
+        venue = x['venueName']
+        link = x['ticketUrl']
+        picLink = x['eventImageLocation']
+        info = (artists, dates,link, venue,picLink)
         summitInfo.append(info)
 
     summitFrame = pd.DataFrame(summitInfo)
-    summitFrame.columns = ['Artist','Date','Link','Venue']
+    summitFrame.columns = ['Artist','Date','Link','Venue','picLink']
     def splitArtists(row):
-        return [x.strip() for x in re.split(',|:', row) if (x is not None) & (x != '')]
+        return [x.strip() for x in re.split(',|:|\*|-|\+|featuring', row) if (x is not None) & (x != '')]
     summitFrame['FiltArtist'] = summitFrame['Artist'].map(splitArtists)
 
     return summitFrame
@@ -924,6 +925,9 @@ def sf_query(run):
             try:
                 result.append(eval(functions[run]))
             except:
+                web_hook = 'https://hooks.slack.com/services/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'
+                slack_msg = {'text':f'There was an error scrapiing (web app) -- {functions[run]}'}
+                requests.post(web_hook, data = json.dumps(slack_msg))
                 pass
                 # print('error', functions[run])
 def main_2():
